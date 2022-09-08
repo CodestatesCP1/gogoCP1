@@ -134,11 +134,11 @@ pygame.init()
 # 보드(정사각형) 한 변을 이루는 칸의 개수
 board_size = 20
 # 보드 한 칸의 한 변 길이
-board_unit_size = 20
+board_unit_size = 30
 
 screen_width = board_size * board_unit_size
 # 점수 등을 표시할 위쪽 여백 100 확보
-screen_height = screen_width + 100
+screen_height = screen_width * 1.25
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('RL Snake')
