@@ -95,9 +95,12 @@ class DQN():
 
 
     # 상태, 행동, 보상을 저장하기 위한 함수
-    def remember(self, state, action, reward, next_state):
-        self.memeory.append((state, action, reward, next_state, done))
     
+    def remember(self, state, action, reward, next_state):
+        
+        # 레퍼런스 코드에서는 done은 벽이나 몸에 닿았을 때 True가 됨.
+        # game.py에서는 reward=-1로 죽는걸 나타냈으므로 이에 맞게 수정?        
+        self.memeory.append((state, action, reward, next_state, done))
     
     # state 상태를 받아 다음 action value를 도출하는 함수
     def act(self, state):
@@ -171,8 +174,16 @@ def train_agent(episode, env):
 
     return sum_of_rewards
 
-temp = DQN()
-temp.compile()
+
+
+"""
+이 밑에서는 game.py를 가져와서 실행시킨 다음, 
+학습 파라미터를 설정 
++
+agent가 플레이하고 그 결과를 반환하는 코드를 구현해야 함!    
+
+(+ 동영상으로 추출하는 코드도 추가?)
+"""
 
 if __name__ == '__main__':
     
