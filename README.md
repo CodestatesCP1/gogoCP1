@@ -6,6 +6,8 @@
 
 ### 1. Snake_game : 게임 제작 및 AI 구현
   1) 게임 제작 사용 모듈 : pygame
+   ![image](https://user-images.githubusercontent.com/89177051/189459365-43acf3e1-fee0-43ac-b384-b100fb1d054e.png)
+
   2) AI 구현
   - 사용 알고리즘 : DQN (Deep Q-Network) with CNN  
 
