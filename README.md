@@ -8,8 +8,8 @@ Codestates CP1
   - pygame
 
 2. Study
-  - Cartpole 
-  - snake game
+  - Cartpole (https://github.com/CodingOpera/RL/blob/main/CartPole-v0.ipynb)
+  - snake game (https://github.com/henniedeharder/snake)
 
 3. Web
   - Web 배포 관련 자료 입니다.
