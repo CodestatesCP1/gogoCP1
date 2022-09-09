@@ -1,0 +1,25 @@
+{% load static %}
+<!doctype html>
+<html lang="ko">
+    <head>
+        <!-- Required meta tags -->
+        <meta charsets="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+        <!-- djangotube CSS -->
+        <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+        <title>Codestates CP1</title>
+    </head>
+    <body>
+        <header class="page-header" style="overflow: auto;">
+            <h2 style="display: inline;"><a href="/djangotube/">강화학습 Simulation</a></h2>
+            <a class="btn btn-default" href="/djangotube/new" style="float: right;">Add Video</a>
+        </header>
+        <!-- 기본 템플릿안에 삽입될 내용 -->
+        {% block content %}
+        {% endblock %}
+    </body>
+
+</html>

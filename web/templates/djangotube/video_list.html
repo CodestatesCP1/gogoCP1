@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content container">
+    <div class="row">
+        <div class="col-md-12">
+            <h3>학습 결과 Video List</h3>
+            {% for video in video_list %}
+                <a href="/djangotube/{{ video.id }}">
+                    <h4>{{ video.id }}. {{ video.title }}</h4>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
