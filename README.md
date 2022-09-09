@@ -5,9 +5,9 @@
 목적 : 강화학습(Reinforcement Learning)을 활용하여 사람 수준에 근접한 AI Agent 구현
 
 ### 1. Snake_game : 게임 제작 및 AI 구현
-  1) 게임 제작 사용 모듈 : pygame
-   ![image](https://user-images.githubusercontent.com/89177051/189459365-43acf3e1-fee0-43ac-b384-b100fb1d054e.png)
+  ![image](https://user-images.githubusercontent.com/89177051/189459451-ab62d1db-cd29-4793-9e22-ca7f143a18fe.png)
 
+  1) 게임 제작 사용 모듈 : pygame
   2) AI 구현
   - 사용 알고리즘 : DQN (Deep Q-Network) with CNN  
 
