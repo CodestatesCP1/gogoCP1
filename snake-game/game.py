@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pygame
 
-from gameclasses import Snake, Button, to_direction
+from gameclasses import Snake, Button, VolumeControlBar, to_direction
 from agent import Agent
 
 HUMAN = 'human'
@@ -28,7 +28,7 @@ def init():
     pygame.init()
 
     # 보드(정사각형) 한 변을 이루는 칸의 개수
-    board_size = 20
+    board_size = 30
     # 보드 한 칸의 한 변 길이
     board_unit_size = 30
 
@@ -50,6 +50,8 @@ def init():
     snake_body = pygame.image.load(os.path.join(essets_path, 'snake_body.png'))
     snake_tail = pygame.image.load(os.path.join(essets_path, 'snake_tail.png')).convert_alpha()
     feed = pygame.image.load(os.path.join(essets_path, 'feed.png'))
+    volume_on_img = pygame.image.load(os.path.join(essets_path, 'volume_on.png')).convert_alpha()
+    volume_off_img = pygame.image.load(os.path.join(essets_path, 'volume_off.png')).convert_alpha()
 
     # 이미지를 화면 크기에 맞게 scaling
     background = pygame.transform.scale(background, (screen_width, screen_height))
@@ -57,9 +59,15 @@ def init():
     snake_body = pygame.transform.scale(snake_body, (board_unit_size, board_unit_size))
     snake_tail = pygame.transform.scale(snake_tail, (board_unit_size, board_unit_size))
     feed = pygame.transform.scale(feed, (board_unit_size, board_unit_size))
+    volume_on_img = pygame.transform.scale(volume_on_img, (1.5 * board_unit_size, 1.5 * board_unit_size))
+    volume_off_img = pygame.transform.scale(volume_off_img, (1.5 * board_unit_size, 1.5 * board_unit_size))
+    volume_off_img.set_alpha(196)
 
     # bgm load
     pygame.mixer.music.load(os.path.join(essets_path + 'bgm.wav'))
+
+    volume_control_bar = VolumeControlBar(3 * screen_width // 4, 17 * (screen_height - screen_width) // 25,
+                                          volume_on_img, volume_off_img, 2 * screen_width // 15, screen_width // 100)
 
     # font
     btn_font = pygame.font.SysFont('applegothic', 30)
@@ -80,13 +88,14 @@ def init():
         'snake_head': snake_head,
         'snake_body': snake_body,
         'snake_tail': snake_tail,
-        'feed': feed
+        'feed': feed,
     }
     game_env['font'] = {
         'btn_font': btn_font,
         'game_font': game_font
     }
     game_env['end'] = False
+    game_env['volume_control_bar'] = volume_control_bar
 
     return game_env
 
@@ -111,10 +120,12 @@ def mode_select(game_env):
 
     running = True
     while running:
-        if player_button.draw(screen):
+        action_player_btn, state_player_btn = player_button.catch_mouse_action()
+        action_ai_btn, state_ai_btn = ai_button.catch_mouse_action()
+        if action_player_btn:
             select_human()
             running = False
-        if ai_button.draw(screen):
+        if action_ai_btn:
             select_ai()
             running = False
 
@@ -129,6 +140,8 @@ def mode_select(game_env):
                     select_ai()
                     running = False
 
+        player_button.draw(screen, state_player_btn)
+        ai_button.draw(screen, state_ai_btn)
         pygame.display.update()
 
 
@@ -146,6 +159,7 @@ def play(game_env):
     snake_tail = game_env['image']['snake_tail']
     background = game_env['image']['background']
     feed = game_env['image']['feed']
+    volume_control_bar = game_env['volume_control_bar']
 
     game_font = game_env['font']['game_font']
 
@@ -183,14 +197,15 @@ def play(game_env):
     while running:
         clock.tick(fps)
 
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
 
         next_action = snake.get_direction()
         # 플레이어가 사람인 경우 키보드 입력으로 다음 행동 결정
         if PLAYER == HUMAN:
-            for event in pygame.event.get():
+            for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
                         next_action = 'U'
@@ -234,7 +249,10 @@ def play(game_env):
         if done:
             break
 
+        volume_control_bar.catch_mouse_action()
+
         screen.blit(background, (0, 0))
+        volume_control_bar.render(screen)
         snake.render(screen, LU)
         screen.blit(feed, (LU[0] + feed_pos[0] * board_unit_size, LU[1] + feed_pos[1] * board_unit_size))
         render_score(str(score), game_font, screen, screen_width, screen_height)
@@ -257,9 +275,11 @@ def replay(game_env):
 
     running = True
     while running:
-        if replay_button.draw(screen):
+        action_replay_btn, state_replay_btn = replay_button.catch_mouse_action()
+        action_end_btn, state_end_btn = end_button.catch_mouse_action()
+        if action_replay_btn:
             running = False
-        if end_button.draw(screen):
+        if action_end_btn:
             game_env['end'] = True
             running = False
         for event in pygame.event.get():
@@ -272,6 +292,8 @@ def replay(game_env):
                     game_env['end'] = True
                     running = False
 
+        replay_button.draw(screen, state_replay_btn)
+        end_button.draw(screen, state_end_btn)
         pygame.display.update()
 
 
