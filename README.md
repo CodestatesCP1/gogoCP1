@@ -19,3 +19,6 @@
   - Frame work = Django
   - Hosting site = Pythonanywhere
   - 배포 주소 : https://ykseo.pythonanywhere.com/djangotube/
+  
+  ![image](https://user-images.githubusercontent.com/89177051/189460562-36515878-71b6-4044-b1e1-1c76c765ea64.png)
+
