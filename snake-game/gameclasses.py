@@ -16,6 +16,19 @@ def to_code(direction):
     return code
 
 
+def to_direction(code):
+    direction = None
+    if code == 0:
+        direction = 'U'
+    elif code == 1:
+        direction = 'L'
+    elif code == 2:
+        direction = 'D'
+    elif code == 3:
+        direction = 'R'
+    return direction
+
+
 class Snake:
     def __init__(self, position, board_size, head_img, body_img, tail_img, img_unit, init_length=3):
         self.direction = np.random.choice(['U', 'L', 'D', 'R'])
@@ -67,19 +80,21 @@ class Snake:
             new_head = (old_head[0] + 1, old_head[1])
             self.direction = 'R'
 
+        popped = None
+
         # when new_head collides with body or wall
-        if new_head in self.body or not self.validate(self.body[0]):
-            return -1
+        if new_head in self.body or not self.validate(new_head):
+            return -1, new_head, old_head, popped
 
         self.body.appendleft(new_head)
 
         # when snake takes feed
         if new_head == feed_position:
-            return 1
+            return 1, new_head, old_head, popped
         else:
-            self.body.pop()
+            popped = self.body.pop()
 
-        return 0
+        return 0, new_head, old_head, popped
 
     def validate(self, pos):
         return 0 <= pos[0] < self.board_size and 0 <= pos[1] < self.board_size
@@ -113,7 +128,7 @@ class Snake:
 
 
 class Button:
-    def __init__(self, x, y, width, height, button_text, font):
+    def __init__(self, x, y, width, height, button_text, font, rounded_edge=True):
         self.x = x
         self.y = y
         self.width = width
@@ -127,6 +142,7 @@ class Button:
         self.txt = font.render(button_text, True, (20, 20, 20))
         self.rect = self.txt.get_rect(center=(x, y))
         self.clicked = False
+        self.rounded_edge = rounded_edge
 
     def draw(self, screen):
         pos = pygame.mouse.get_pos()
@@ -146,8 +162,10 @@ class Button:
         if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
 
+        border_radius = self.height // 3 if self.rounded_edge else 0
         pygame.draw.rect(screen, self.fill_colors[state],
-                         [self.x - self.width // 2, self.y - self.height // 2, self.width, self.height])
+                         [self.x - self.width // 2, self.y - self.height // 2, self.width, self.height],
+                         border_radius=border_radius)
         screen.blit(self.txt, self.rect)
 
         return action
