@@ -148,6 +148,7 @@ def play(game_env):
     feed_pos = make_feed(snake.get_body(), board_size)
 
     running = True
+    # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
     LU = (0, screen_height - screen_width)
     score = 0
     pygame.mixer.music.play(-1)

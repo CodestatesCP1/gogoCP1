@@ -113,7 +113,7 @@ class Snake:
 
 
 class Button:
-    def __init__(self, x, y, width, height, button_text, font):
+    def __init__(self, x, y, width, height, button_text, font, rounded_edge=True):
         self.x = x
         self.y = y
         self.width = width
@@ -127,6 +127,7 @@ class Button:
         self.txt = font.render(button_text, True, (20, 20, 20))
         self.rect = self.txt.get_rect(center=(x, y))
         self.clicked = False
+        self.rounded_edge = rounded_edge
 
     def draw(self, screen):
         pos = pygame.mouse.get_pos()
@@ -146,8 +147,10 @@ class Button:
         if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
 
+        border_radius = self.height // 3 if self.rounded_edge else 0
         pygame.draw.rect(screen, self.fill_colors[state],
-                         [self.x - self.width // 2, self.y - self.height // 2, self.width, self.height])
+                         [self.x - self.width // 2, self.y - self.height // 2, self.width, self.height],
+                         border_radius=border_radius)
         screen.blit(self.txt, self.rect)
 
         return action
