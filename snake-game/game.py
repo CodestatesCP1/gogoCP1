@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import time
 import pygame
 
 from gameclasses import Snake, Button
@@ -15,14 +14,86 @@ def make_feed(snake_body, board_size):
     return x, y
 
 
-def render_score(score, font):
+def render_score(score, font, screen, screen_width, screen_height):
     txt_score = font.render(score, True, (0, 0, 0))
     rect_score = txt_score.get_rect(center=(screen_width // 2, (screen_height - screen_width) // 2))
     screen.blit(txt_score, rect_score)
 
 
-def mode_select():
-    global PLAYER
+def init():
+    pygame.init()
+
+    # 보드(정사각형) 한 변을 이루는 칸의 개수
+    board_size = 20
+    # 보드 한 칸의 한 변 길이
+    board_unit_size = 30
+
+    screen_width = board_size * board_unit_size
+    # 점수 등을 표시할 위쪽 여백 확보
+    screen_height = screen_width * 1.25
+
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption('RL Snake')
+    clock = pygame.time.Clock()
+    # 초당 움직이는 칸 개수
+    fps = 7
+
+    # 이미지 load
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    essets_path = f'{current_path}/essets/'
+    background = pygame.image.load(os.path.join(essets_path, 'background.jpg'))
+    snake_head = pygame.image.load(os.path.join(essets_path, 'snake_head.png')).convert_alpha()
+    snake_body = pygame.image.load(os.path.join(essets_path, 'snake_body.png'))
+    snake_tail = pygame.image.load(os.path.join(essets_path, 'snake_tail.png')).convert_alpha()
+    feed = pygame.image.load(os.path.join(essets_path, 'feed.png'))
+
+    # 이미지를 화면 크기에 맞게 scaling
+    background = pygame.transform.scale(background, (screen_width, screen_height))
+    snake_head = pygame.transform.scale(snake_head, (board_unit_size, board_unit_size))
+    snake_body = pygame.transform.scale(snake_body, (board_unit_size, board_unit_size))
+    snake_tail = pygame.transform.scale(snake_tail, (board_unit_size, board_unit_size))
+    feed = pygame.transform.scale(feed, (board_unit_size, board_unit_size))
+
+    # bgm load
+    pygame.mixer.music.load(os.path.join(essets_path + 'bgm.wav'))
+
+    # font
+    btn_font = pygame.font.SysFont('applegothic', 30)
+    game_font = pygame.font.SysFont('arialrounded', 40)
+
+    game_env = {}
+    game_env['player'] = None
+    game_env['board_size'] = board_size
+    game_env['board_unit_size'] = board_unit_size
+    game_env['screen_width'] = screen_width
+    game_env['screen_height'] = screen_height
+    game_env['screen'] = screen
+    game_env['clock'] = clock
+    game_env['fps'] = fps
+    game_env['image'] = {
+        'background': background,
+        'snake_head': snake_head,
+        'snake_body': snake_body,
+        'snake_tail': snake_tail,
+        'feed': feed
+    }
+    game_env['font'] = {
+        'btn_font': btn_font,
+        'game_font': game_font
+    }
+    game_env['end'] = False
+
+    return game_env
+
+
+def mode_select(game_env):
+    HUMAN = 'human'
+    AI = 'ai'
+
+    btn_font = game_env['font']['btn_font']
+    screen_width = game_env['screen_width']
+    screen_height = game_env['screen_height']
+    screen = game_env['screen']
 
     btn_width = 300
     btn_height = 100
@@ -32,9 +103,10 @@ def mode_select():
     running = True
     while running:
         if player_button.draw(screen):
-            PLAYER = 'human'
+            game_env['player'] = HUMAN
             running = False
         if ai_button.draw(screen):
+            # game_env['player'] = AI
             print('미구현')
 
         for event in pygame.event.get():
@@ -42,13 +114,29 @@ def mode_select():
                 pygame.quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    PLAYER = 'human'
+                    game_env['player'] = HUMAN
                     running = False
 
         pygame.display.update()
 
 
-def play():
+def play(game_env):
+    board_size = game_env['board_size']
+    board_unit_size = game_env['board_unit_size']
+    screen_height = game_env['screen_height']
+    screen_width = game_env['screen_width']
+    clock = game_env['clock']
+    fps = game_env['fps']
+    screen = game_env['screen']
+
+    snake_head = game_env['image']['snake_head']
+    snake_body = game_env['image']['snake_body']
+    snake_tail = game_env['image']['snake_tail']
+    background = game_env['image']['background']
+    feed = game_env['image']['feed']
+
+    game_font = game_env['font']['game_font']
+
     # 뱀 최초 위치 랜덤 생성(벽에 너무 가까이 있으면 시작하자마자 죽을 수 있으므로 벽과 적당히 떨어져있도록 설정)
     snake_init_pos = (
         np.random.randint(board_size // 4, 3 * board_size // 4),
@@ -93,13 +181,15 @@ def play():
         screen.blit(background, (0, 0))
         snake.render(screen, LU)
         screen.blit(feed, (LU[0] + feed_pos[0] * board_unit_size, LU[1] + feed_pos[1] * board_unit_size))
-        render_score(str(score), game_font)
+        render_score(str(score), game_font, screen, screen_width, screen_height)
         pygame.display.update()
 
 
-def replay():
-    global end
-    pygame.display.update()
+def replay(game_env):
+    screen_width = game_env['screen_width']
+    screen_height = game_env['screen_height']
+    btn_font = game_env['font']['btn_font']
+    screen = game_env['screen']
 
     btn_width = 300
     btn_height = 100
@@ -111,7 +201,7 @@ def replay():
         if replay_button.draw(screen):
             running = False
         if end_button.draw(screen):
-            end = True
+            game_env['end'] = True
             running = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -120,55 +210,15 @@ def replay():
                 if event.key == pygame.K_RETURN:
                     running = False
                 if event.key == pygame.K_ESCAPE:
-                    end = True
+                    game_env['end'] = True
                     running = False
 
         pygame.display.update()
 
 
-# player or ai
-PLAYER = None
-
-pygame.init()
-
-# 보드(정사각형) 한 변을 이루는 칸의 개수
-board_size = 20
-# 보드 한 칸의 한 변 길이
-board_unit_size = 30
-
-screen_width = board_size * board_unit_size
-# 점수 등을 표시할 위쪽 여백 100 확보
-screen_height = screen_width * 1.25
-
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption('RL Snake')
-clock = pygame.time.Clock()
-# 초당 움직이는 칸 개수
-fps = 7
-
-# 이미지 load
-current_path = os.path.dirname(os.path.realpath(__file__))
-essets_path = f'{current_path}/essets/'
-background = pygame.image.load(os.path.join(essets_path, 'background.jpg'))
-snake_head = pygame.image.load(os.path.join(essets_path, 'snake_head.png')).convert_alpha()
-snake_body = pygame.image.load(os.path.join(essets_path, 'snake_body.png'))
-snake_tail = pygame.image.load(os.path.join(essets_path, 'snake_tail.png')).convert_alpha()
-feed = pygame.image.load(os.path.join(essets_path, 'feed.png'))
-
-background = pygame.transform.scale(background, (screen_width, screen_height))
-snake_head = pygame.transform.scale(snake_head, (board_unit_size, board_unit_size))
-snake_body = pygame.transform.scale(snake_body, (board_unit_size, board_unit_size))
-snake_tail = pygame.transform.scale(snake_tail, (board_unit_size, board_unit_size))
-feed = pygame.transform.scale(feed, (board_unit_size, board_unit_size))
-
-# bgm load
-pygame.mixer.music.load(os.path.join(essets_path + 'bgm.wav'))
-
-btn_font = pygame.font.SysFont('applegothic', 30)
-game_font = pygame.font.SysFont('arialrounded', 40)
-
-mode_select()
-end = False
-while not end:
-    play()
-    replay()
+if __name__ == '__main__':
+    game_env = init()
+    mode_select(game_env)
+    while not game_env['end']:
+        play(game_env)
+        replay(game_env)
