@@ -28,7 +28,7 @@ def init():
     pygame.init()
 
     # 보드(정사각형) 한 변을 이루는 칸의 개수
-    board_size = 30
+    board_size = 20
     # 보드 한 칸의 한 변 길이
     board_unit_size = 30
 
