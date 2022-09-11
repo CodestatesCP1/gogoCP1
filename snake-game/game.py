@@ -189,11 +189,17 @@ def play(game_env):
         # 먹이 표시
         state[feed_pos[1]][feed_pos[0]][2] = 1
 
-    running = True
     # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
     LU = (0, screen_height - screen_width)
     score = 0
     pygame.mixer.music.play(-1)
+    running = True
+    pause = False
+    pause_surface = pygame.Surface((screen_width, screen_width))
+    pause_surface.set_alpha(128)
+    pause_surface.fill((0, 0, 0))
+    pause_txt = game_font.render('pause', True, (255, 255, 255))
+    pause_txt_rect = pause_txt.get_rect(center=(screen_width//2, screen_height//2))
     while running:
         clock.tick(fps)
 
@@ -201,61 +207,73 @@ def play(game_env):
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
-
-        next_action = snake.get_direction()
-        # 플레이어가 사람인 경우 키보드 입력으로 다음 행동 결정
-        if PLAYER == HUMAN:
-            for event in events:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        next_action = 'U'
-                    elif event.key == pygame.K_LEFT:
-                        next_action = 'L'
-                    elif event.key == pygame.K_DOWN:
-                        next_action = 'D'
-                    elif event.key == pygame.K_RIGHT:
-                        next_action = 'R'
-        # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
-        elif PLAYER == AI:
-            next_action = to_direction(agent.policy(state))
-
-        reward, new_head, old_head, popped = snake.move(next_action, feed_pos)
-
-        old_feed_pos = None
-        # 먹이 먹음
-        if reward == 1:
-            score += 1
-            old_feed_pos = feed_pos
-            feed_pos = make_feed(snake.get_body(), board_size)
-
-        done = False
-        # 죽음
-        if reward == -1:
-            pygame.mixer.music.stop()
-            done = True
-
-        # 상태 업데이트
-        if PLAYER == AI and not done:
-            state[new_head[1]][new_head[0]] = np.array([1, 1, 0])
-            state[old_head[1]][old_head[0]][1] = 0
-            if popped:
-                state[popped[1]][popped[0]][0] = 0
-            if old_feed_pos:
-                state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
-                state[feed_pos[1]][feed_pos[0]][2] = 1
-
-        ### 여기서 AI 학습용으로 state 갖다 쓰면 됩니다...!
-
-        if done:
-            break
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                pause = not pause
+                if pause:
+                    pygame.mixer.music.pause()
+                else:
+                    pygame.mixer.music.unpause()
 
         volume_control_bar.catch_mouse_action()
+
+        if not pause:
+            next_action = snake.get_direction()
+            # 플레이어가 사람인 경우 키보드 입력으로 다음 행동 결정
+            if PLAYER == HUMAN:
+                for event in events:
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_UP:
+                            next_action = 'U'
+                        elif event.key == pygame.K_LEFT:
+                            next_action = 'L'
+                        elif event.key == pygame.K_DOWN:
+                            next_action = 'D'
+                        elif event.key == pygame.K_RIGHT:
+                            next_action = 'R'
+            # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
+            elif PLAYER == AI:
+                next_action = to_direction(agent.policy(state))
+
+            reward, new_head, old_head, popped = snake.move(next_action, feed_pos)
+
+            old_feed_pos = None
+            # 먹이 먹음
+            if reward == 1:
+                score += 1
+                old_feed_pos = feed_pos
+                feed_pos = make_feed(snake.get_body(), board_size)
+
+            done = False
+            # 죽음
+            if reward == -1:
+                pygame.mixer.music.stop()
+                done = True
+
+            # 상태 업데이트
+            if PLAYER == AI and not done:
+                state[new_head[1]][new_head[0]] = np.array([1, 1, 0])
+                state[old_head[1]][old_head[0]][1] = 0
+                if popped:
+                    state[popped[1]][popped[0]][0] = 0
+                if old_feed_pos:
+                    state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
+                    state[feed_pos[1]][feed_pos[0]][2] = 1
+
+            ### 여기서 AI 학습용으로 state 갖다 쓰면 됩니다...!
+
+            if done:
+                break
 
         screen.blit(background, (0, 0))
         volume_control_bar.render(screen)
         snake.render(screen, LU)
         screen.blit(feed, (LU[0] + feed_pos[0] * board_unit_size, LU[1] + feed_pos[1] * board_unit_size))
         render_score(str(score), game_font, screen, screen_width, screen_height)
+
+        if pause:
+            screen.blit(pause_surface, (0, screen_height-screen_width))
+            screen.blit(pause_txt, pause_txt_rect)
+
         pygame.display.update()
 
 
