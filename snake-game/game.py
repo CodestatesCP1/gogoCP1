@@ -131,6 +131,7 @@ def mode_select(game_env):
         #     'input_shape': (game_env['board_size'], game_env['board_size'], 3)
         # }
         # game_env['agent'] = Agent(hyperparams)
+        # --------------------------------------
 
         # Multi Perceptron Agent
         hyperparams = {
@@ -144,6 +145,7 @@ def mode_select(game_env):
             'layer_sizes': [128, 128, 128]
         }
         game_env['agent'] = Agent2(hyperparams)
+        # --------------------------------------
 
     running = True
     while running:
@@ -222,6 +224,7 @@ def play(game_env):
         #     state[head_y][head_x][1] = 1
         #     # 먹이 표시
         #     state[feed_pos[1]][feed_pos[0]][2] = 1
+        # --------------------------------------
 
         # Multi Perceptron Agent
         def get_state():
@@ -248,6 +251,7 @@ def play(game_env):
             return [feed_x, feed_y, head_x, head_y,
                     obstacle_up, obstacle_left, obstacle_down, obstacle_right,
                     up, left, right, down]
+        # --------------------------------------
 
 
     # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
@@ -293,7 +297,10 @@ def play(game_env):
                             next_action = 'R'
             # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
             elif PLAYER == AI:
+                # Multi Perceptron Agent
                 state = get_state()
+                # --------------------------------------
+
                 next_action = to_direction(agent.policy(state))
 
             reward, new_head, old_head, popped = snake.move(next_action, feed_pos,
@@ -325,8 +332,12 @@ def play(game_env):
             #     if old_feed_pos:
             #         state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
             #         state[feed_pos[1]][feed_pos[0]][2] = 1
+            # next_state = state
+            # --------------------------------------
 
+            # Multi Perceptron Agent
             next_state = get_state()
+            # --------------------------------------
 
             if PLAYER == AI:
                 agent.train_dqn(prev_state, to_code(next_action), reward, next_state, done)
