@@ -54,7 +54,7 @@ class Snake:
     def get_direction(self):
         return self.direction
 
-    def move(self, action, feed_position):
+    def move(self, action, feed_position, feed_reward, death_reward, hot_reward, cool_reward):
         dir_code = to_code(self.direction)
         if dir_code is None:
             return
@@ -84,17 +84,22 @@ class Snake:
 
         # when new_head collides with body or wall
         if new_head in self.body or not self.validate(new_head):
-            return -1, new_head, old_head, popped
+            return death_reward, new_head, old_head, popped
 
         self.body.appendleft(new_head)
 
         # when snake takes feed
         if new_head == feed_position:
-            return 1, new_head, old_head, popped
+            return feed_reward, new_head, old_head, popped
         else:
             popped = self.body.pop()
 
-        return 0, new_head, old_head, popped
+        cool = True
+        if np.abs(old_head[0] - feed_position[0]) + np.abs(old_head[1] - feed_position[1]) \
+                > np.abs(new_head[0] - feed_position[0]) + np.abs(new_head[1] - feed_position[1]):
+            cool = False
+
+        return cool_reward if cool else hot_reward, new_head, old_head, popped
 
     def validate(self, pos):
         return 0 <= pos[0] < self.board_size and 0 <= pos[1] < self.board_size
@@ -218,7 +223,8 @@ class VolumeControlBar:
             self.bar_clicked = True
 
         if self.bar_clicked:
-            self.volume = (min(max(mouse_x, self.bar_left), self.bar_left + self.bar_width) - self.bar_left) / self.bar_width
+            self.volume = (min(max(mouse_x, self.bar_left),
+                               self.bar_left + self.bar_width) - self.bar_left) / self.bar_width
             if self.volume == 0:
                 self.mute = True
             elif self.mute:
