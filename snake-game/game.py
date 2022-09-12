@@ -293,7 +293,9 @@ def play(game_env):
                             next_action = 'R'
             # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
             elif PLAYER == AI:
+                # Multi Perceptron Agent(CNN 사용시 아래 한 줄만 주석처리)
                 state = get_state()
+
                 next_action = to_direction(agent.policy(state))
 
             reward, new_head, old_head, popped = snake.move(next_action, feed_pos,
@@ -325,7 +327,9 @@ def play(game_env):
             #     if old_feed_pos:
             #         state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
             #         state[feed_pos[1]][feed_pos[0]][2] = 1
+            # next_state = state
 
+            # Multi Perceptron Agent
             next_state = get_state()
 
             if PLAYER == AI:
