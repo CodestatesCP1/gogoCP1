@@ -2,8 +2,9 @@ import os
 import numpy as np
 import pygame
 
-from gameclasses import Snake, Button, VolumeControlBar, to_direction
+from gameclasses import Snake, Button, VolumeControlBar, to_code, to_direction
 from agent import Agent
+from agent_2 import Agent2
 
 HUMAN = 'human'
 AI = 'ai'
@@ -96,6 +97,10 @@ def init():
     }
     game_env['end'] = False
     game_env['volume_control_bar'] = volume_control_bar
+    game_env['feed_reward'] = 10
+    game_env['death_reward'] = -100
+    game_env['hot_reward'] = 1
+    game_env['cool_reward'] = -1
 
     return game_env
 
@@ -116,7 +121,29 @@ def mode_select(game_env):
 
     def select_ai():
         game_env['player'] = AI
-        game_env['agent'] = Agent()
+        # CNN Agent
+        # hyperparams = {
+        #     'epsilon': 0.3,
+        #     'gamma': 0.95,
+        #     'batch_size': 500,
+        #     'learning_rate': 0.00025,
+        #     'kernel_size': 3,
+        #     'input_shape': (game_env['board_size'], game_env['board_size'], 3)
+        # }
+        # game_env['agent'] = Agent(hyperparams)
+
+        # Multi Perceptron Agent
+        hyperparams = {
+            'state_space': 12,
+            'epsilon': 1,
+            'gamma': 0.95,
+            'batch_size': 500,
+            'epsilon_min': 0.01,
+            'epsilon_decay': 0.995,
+            'learning_rate': 0.00025,
+            'layer_sizes': [128, 128, 128]
+        }
+        game_env['agent'] = Agent2(hyperparams)
 
     running = True
     while running:
@@ -164,7 +191,13 @@ def play(game_env):
     game_font = game_env['font']['game_font']
 
     PLAYER = game_env['player']
+    if PLAYER == AI:
+        fps = 30
     agent = game_env['agent']
+    feed_reward = game_env['feed_reward']
+    death_reward = game_env['death_reward']
+    hot_reward = game_env['hot_reward']
+    cool_reward = game_env['cool_reward']
 
     # 뱀 최초 위치 랜덤 생성(벽에 너무 가까이 있으면 시작하자마자 죽을 수 있으므로 벽과 적당히 떨어져있도록 설정)
     snake_init_pos = (
@@ -179,15 +212,43 @@ def play(game_env):
     # 현재 상태 표현
     state = None
     if PLAYER == AI:
-        state = np.zeros((board_size, board_size, 3), dtype=int)
-        # 뱀 몸통 표시
-        for x, y in snake.get_body():
-            state[y][x][0] = 1
-        # 뱀 머리 표시
-        head_x, head_y = snake.get_body()[0]
-        state[head_y][head_x][1] = 1
-        # 먹이 표시
-        state[feed_pos[1]][feed_pos[0]][2] = 1
+        # CNN Agent
+        #     state = np.zeros((board_size, board_size, 3), dtype=int)
+        #     # 뱀 몸통 표시
+        #     for x, y in snake.get_body():
+        #         state[y][x][0] = 1
+        #     # 뱀 머리 표시
+        #     head_x, head_y = snake.get_body()[0]
+        #     state[head_y][head_x][1] = 1
+        #     # 먹이 표시
+        #     state[feed_pos[1]][feed_pos[0]][2] = 1
+
+        # Multi Perceptron Agent
+        def get_state():
+            body = snake.get_body()
+            head_x, head_y = body[0]
+            feed_x, feed_y = feed_pos
+
+            obstacle_up = head_y == 0 or (head_x, head_y-1) in body
+            obstacle_left = head_x == 0 or (head_x-1, head_y) in body
+            obstacle_down = head_y == board_size-1 or (head_x, head_y+1) in body
+            obstacle_right = head_x == board_size-1 or (head_x+1, head_y) in body
+
+            up = left = right = down = 0
+
+            if snake.direction == 'U':
+                up = 1
+            elif snake.direction == 'L':
+                left = 1
+            elif snake.direction == 'D':
+                down = 1
+            elif snake.direction == 'R':
+                right = 1
+
+            return [feed_x, feed_y, head_x, head_y,
+                    obstacle_up, obstacle_left, obstacle_down, obstacle_right,
+                    up, left, right, down]
+
 
     # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
     LU = (0, screen_height - screen_width)
@@ -199,7 +260,7 @@ def play(game_env):
     pause_surface.set_alpha(128)
     pause_surface.fill((0, 0, 0))
     pause_txt = game_font.render('pause', True, (255, 255, 255))
-    pause_txt_rect = pause_txt.get_rect(center=(screen_width//2, screen_height//2))
+    pause_txt_rect = pause_txt.get_rect(center=(screen_width // 2, screen_height // 2))
     while running:
         clock.tick(fps)
 
@@ -232,34 +293,43 @@ def play(game_env):
                             next_action = 'R'
             # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
             elif PLAYER == AI:
+                state = get_state()
                 next_action = to_direction(agent.policy(state))
 
-            reward, new_head, old_head, popped = snake.move(next_action, feed_pos)
+            reward, new_head, old_head, popped = snake.move(next_action, feed_pos,
+                                                            feed_reward, death_reward, hot_reward, cool_reward)
 
             old_feed_pos = None
             # 먹이 먹음
-            if reward == 1:
+            if reward == feed_reward:
                 score += 1
                 old_feed_pos = feed_pos
                 feed_pos = make_feed(snake.get_body(), board_size)
 
             done = False
             # 죽음
-            if reward == -1:
+            if reward == death_reward:
                 pygame.mixer.music.stop()
                 done = True
 
-            # 상태 업데이트
-            if PLAYER == AI and not done:
-                state[new_head[1]][new_head[0]] = np.array([1, 1, 0])
-                state[old_head[1]][old_head[0]][1] = 0
-                if popped:
-                    state[popped[1]][popped[0]][0] = 0
-                if old_feed_pos:
-                    state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
-                    state[feed_pos[1]][feed_pos[0]][2] = 1
+            prev_state = state
 
-            ### 여기서 AI 학습용으로 state 갖다 쓰면 됩니다...!
+            # CNN Agent
+            # 상태 업데이트
+            # if PLAYER == AI and not done:
+            #     state[new_head[1]][new_head[0]][0] = 1
+            #     state[new_head[1]][new_head[0]][1] = 1
+            #     state[old_head[1]][old_head[0]][1] = 0
+            #     if popped:
+            #         state[popped[1]][popped[0]][0] = 0
+            #     if old_feed_pos:
+            #         state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
+            #         state[feed_pos[1]][feed_pos[0]][2] = 1
+
+            next_state = get_state()
+
+            if PLAYER == AI:
+                agent.train_dqn(prev_state, to_code(next_action), reward, next_state, done)
 
             if done:
                 break
@@ -271,7 +341,7 @@ def play(game_env):
         render_score(str(score), game_font, screen, screen_width, screen_height)
 
         if pause:
-            screen.blit(pause_surface, (0, screen_height-screen_width))
+            screen.blit(pause_surface, (0, screen_height - screen_width))
             screen.blit(pause_txt, pause_txt_rect)
 
         pygame.display.update()
