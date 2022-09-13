@@ -31,7 +31,7 @@ def init():
     pygame.init()
 
     # 보드(정사각형) 한 변을 이루는 칸의 개수
-    board_size = 20
+    board_size = 10
     # 보드 한 칸의 한 변 길이
     board_unit_size = 30
 
@@ -100,7 +100,7 @@ def init():
     game_env['end'] = False
     game_env['volume_control_bar'] = volume_control_bar
     game_env['feed_reward'] = 10
-    game_env['death_reward'] = -100
+    game_env['death_reward'] = -10
     game_env['hot_reward'] = 1
     game_env['cool_reward'] = -1
 
@@ -127,14 +127,15 @@ def mode_select(game_env):
         game_env['player'] = AI
         # CNN Agent
         hyperparams = {
-            'epsilon': 1,
-            'gamma': 0.95,
-            'batch_size': 500,
-            'epsilon_min': 0.01,
+            'epsilon': 0.5,
+            'gamma': 0.99,
+            'batch_size': 64,
+            'epsilon_min': 0.05,
             'epsilon_decay': 0.995,
             'learning_rate': 0.00025,
             'kernel_size': 3,
-            'input_shape': (game_env['board_size'], game_env['board_size'], 3)
+            'input_shape': (game_env['board_size'], game_env['board_size'], 3),
+            'target_update_freq': 5
         }
         game_env['agent'] = Agent(hyperparams)
         # --------------------------------------
@@ -307,6 +308,8 @@ def play(game_env):
     hot_reward = game_env['hot_reward']
     cool_reward = game_env['cool_reward']
 
+    
+
     model_path = game_env['model_path']
 
     # 뱀 최초 위치 랜덤 생성(벽에 너무 가까이 있으면 시작하자마자 죽을 수 있으므로 벽과 적당히 떨어져있도록 설정)
@@ -419,10 +422,11 @@ def play(game_env):
 
             reward, new_head, old_head, popped = snake.move(next_action, feed_pos,
                                                             feed_reward, death_reward, hot_reward, cool_reward)
+            
 
             old_feed_pos = None
             # 먹이 먹음
-            if reward == feed_reward:
+            if reward == feed_reward + len(snake.body):
                 score += 1
                 old_feed_pos = feed_pos
                 feed_pos = make_feed(snake.get_body(), board_size)
@@ -432,6 +436,7 @@ def play(game_env):
             if reward == death_reward:
                 pygame.mixer.music.stop()
                 done = True
+                
 
             prev_state = state
 
@@ -456,7 +461,8 @@ def play(game_env):
 
             if PLAYER == AI:
                 agent.train_dqn(prev_state, to_code(next_action), reward, next_state, done)
-
+                agent.increase_target_update_counter()
+                
             if done:
                 break
 

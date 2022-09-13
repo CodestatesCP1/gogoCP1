@@ -90,7 +90,7 @@ class Snake:
 
         # when snake takes feed
         if new_head == feed_position:
-            return feed_reward, new_head, old_head, popped
+            return feed_reward + len(self.body), new_head, old_head, popped
         else:
             popped = self.body.pop()
 
