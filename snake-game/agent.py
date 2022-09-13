@@ -11,6 +11,8 @@ from collections import deque
 class Agent:
     def __init__(self, hyperparams):
         self.epsilon = hyperparams['epsilon']
+        self.epsilon_min = hyperparams['epsilon_min']
+        self.epsilon_decay = hyperparams['epsilon_decay']
         self.gamma = hyperparams['gamma']
         self.batch_size = hyperparams['batch_size']
         self.learning_rate = hyperparams['learning_rate']
@@ -48,7 +50,7 @@ class Agent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train_dqn(self, state, action, reward, next_state, done):
-        self.remember(state, action, reward, next_state, 1 if done else 0)
+        self.remember(state, action, reward, next_state, done)
 
         if len(self.memory) < self.batch_size:
             return
@@ -60,8 +62,7 @@ class Agent:
         next_states = np.array([sample[3] for sample in minibatch])
         dones = np.array([sample[4] for sample in minibatch])
 
-        if not done:
-            rewards = rewards + self.gamma * (np.amax(self.model.predict_on_batch(next_states), axis=1)) * (1 - dones)
+        rewards = rewards + self.gamma * (np.amax(self.model.predict_on_batch(next_states), axis=1)) * (1 - dones)
 
         y = self.model.predict_on_batch(states)
 
@@ -69,8 +70,9 @@ class Agent:
         y[[index], [actions]] = rewards
 
         self.model.fit(states, y, epochs=1, verbose=0)
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
-    # 아직 학습된 모델이 없으므로 랜덤 예측
     def predict_reward(self, state):
         return self.model.predict(np.array([state]))
 
@@ -83,13 +85,6 @@ class Agent:
 
         return np.random.choice(self.action_space, p=p)
 
+    # don't use
     def save(self, model_path):
-        index = 1
-        trying = True
-        while trying:
-            file_path = model_path + f'model_{index}.pkl'
-            if not os.path.isfile(file_path):
-                with open(file_path, 'wb') as pickle_file:
-                    pickle.dump(self, pickle_file)
-                    trying = False
-            index += 1
+        pass

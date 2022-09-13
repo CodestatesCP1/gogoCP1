@@ -126,29 +126,31 @@ def mode_select(game_env):
     def select_ai():
         game_env['player'] = AI
         # CNN Agent
-        # hyperparams = {
-        #     'epsilon': 0.3,
-        #     'gamma': 0.95,
-        #     'batch_size': 500,
-        #     'learning_rate': 0.00025,
-        #     'kernel_size': 3,
-        #     'input_shape': (game_env['board_size'], game_env['board_size'], 3)
-        # }
-        # game_env['agent'] = Agent(hyperparams)
-        # --------------------------------------
-
-        # Multi Perceptron Agent
         hyperparams = {
-            'state_space': 12,
             'epsilon': 1,
             'gamma': 0.95,
             'batch_size': 500,
             'epsilon_min': 0.01,
             'epsilon_decay': 0.995,
             'learning_rate': 0.00025,
-            'layer_sizes': [128, 128, 128]
+            'kernel_size': 3,
+            'input_shape': (game_env['board_size'], game_env['board_size'], 3)
         }
-        game_env['agent'] = Agent2(hyperparams)
+        game_env['agent'] = Agent(hyperparams)
+        # --------------------------------------
+
+        # Multi Perceptron Agent
+        # hyperparams = {
+        #     'state_space': 12,
+        #     'epsilon': 1,
+        #     'gamma': 0.95,
+        #     'batch_size': 500,
+        #     'epsilon_min': 0.01,
+        #     'epsilon_decay': 0.995,
+        #     'learning_rate': 0.00025,
+        #     'layer_sizes': [128, 128, 128]
+        # }
+        # game_env['agent'] = Agent2(hyperparams)
         # --------------------------------------
 
     background_color = '#333333'
@@ -322,44 +324,44 @@ def play(game_env):
     state = None
     if PLAYER == AI:
         # CNN Agent
-        #     state = np.zeros((board_size, board_size, 3), dtype=int)
-        #     # 뱀 몸통 표시
-        #     for x, y in snake.get_body():
-        #         state[y][x][0] = 1
-        #     # 뱀 머리 표시
-        #     head_x, head_y = snake.get_body()[0]
-        #     state[head_y][head_x][1] = 1
-        #     # 먹이 표시
-        #     state[feed_pos[1]][feed_pos[0]][2] = 1
+        state = np.zeros((board_size, board_size, 3), dtype=int)
+        # 뱀 몸통 표시
+        for x, y in snake.get_body():
+            state[y][x][0] = 1
+        # 뱀 머리 표시
+        head_x, head_y = snake.get_body()[0]
+        state[head_y][head_x][1] = 1
+        # 먹이 표시
+        state[feed_pos[1]][feed_pos[0]][2] = 1
         # --------------------------------------
 
         # Multi Perceptron Agent
-        def get_state():
-            body = snake.get_body()
-            head_x, head_y = body[0]
-            feed_x, feed_y = feed_pos
-
-            obstacle_up = head_y == 0 or (head_x, head_y - 1) in body
-            obstacle_left = head_x == 0 or (head_x - 1, head_y) in body
-            obstacle_down = head_y == board_size - 1 or (head_x, head_y + 1) in body
-            obstacle_right = head_x == board_size - 1 or (head_x + 1, head_y) in body
-
-            up = left = right = down = 0
-
-            if snake.direction == 'U':
-                up = 1
-            elif snake.direction == 'L':
-                left = 1
-            elif snake.direction == 'D':
-                down = 1
-            elif snake.direction == 'R':
-                right = 1
-
-            return [feed_x, feed_y, head_x, head_y,
-                    obstacle_up, obstacle_left, obstacle_down, obstacle_right,
-                    up, left, right, down]
-
+        # def get_state():
+        #     body = snake.get_body()
+        #     head_x, head_y = body[0]
+        #     feed_x, feed_y = feed_pos
+        #
+        #     obstacle_up = head_y == 0 or (head_x, head_y - 1) in body
+        #     obstacle_left = head_x == 0 or (head_x - 1, head_y) in body
+        #     obstacle_down = head_y == board_size - 1 or (head_x, head_y + 1) in body
+        #     obstacle_right = head_x == board_size - 1 or (head_x + 1, head_y) in body
+        #
+        #     up = left = right = down = 0
+        #
+        #     if snake.direction == 'U':
+        #         up = 1
+        #     elif snake.direction == 'L':
+        #         left = 1
+        #     elif snake.direction == 'D':
+        #         down = 1
+        #     elif snake.direction == 'R':
+        #         right = 1
+        #
+        #     return [feed_x, feed_y, head_x, head_y,
+        #             obstacle_up, obstacle_left, obstacle_down, obstacle_right,
+        #             up, left, right, down]
         # --------------------------------------
+
         save_button = Button(105, 110, 200, 70, 'save model', btn_font)
 
     # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
@@ -410,7 +412,7 @@ def play(game_env):
             # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
             elif PLAYER == AI:
                 # Multi Perceptron Agent
-                state = get_state()
+                # state = get_state()
                 # --------------------------------------
 
                 next_action = to_direction(agent.policy(state))
@@ -435,20 +437,21 @@ def play(game_env):
 
             # CNN Agent
             # 상태 업데이트
-            # if PLAYER == AI and not done:
-            #     state[new_head[1]][new_head[0]][0] = 1
-            #     state[new_head[1]][new_head[0]][1] = 1
-            #     state[old_head[1]][old_head[0]][1] = 0
-            #     if popped:
-            #         state[popped[1]][popped[0]][0] = 0
-            #     if old_feed_pos:
-            #         state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
-            #         state[feed_pos[1]][feed_pos[0]][2] = 1
-            # next_state = state
+            if PLAYER == AI and not done:
+                state[new_head[1]][new_head[0]][0] = 1
+                state[new_head[1]][new_head[0]][1] = 1
+                state[old_head[1]][old_head[0]][1] = 0
+                if popped:
+                    state[popped[1]][popped[0]][0] = 0
+                if old_feed_pos:
+                    state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
+                    state[feed_pos[1]][feed_pos[0]][2] = 1
+            next_state = state
             # --------------------------------------
 
             # Multi Perceptron Agent
-            next_state = get_state()
+            # if PLAYER == AI:
+            #     next_state = get_state()
             # --------------------------------------
 
             if PLAYER == AI:
