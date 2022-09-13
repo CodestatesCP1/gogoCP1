@@ -133,7 +133,7 @@ class Snake:
 
 
 class Button:
-    def __init__(self, x, y, width, height, button_text, font, rounded_edge=True):
+    def __init__(self, x, y, width, height, button_text, font, rounded_edge=True, disabled=False):
         self.x = x
         self.y = y
         self.width = width
@@ -144,10 +144,12 @@ class Button:
             'hover': '#666666',
             'pressed': '#333333',
         }
-        self.txt = font.render(button_text, True, (20, 20, 20))
+        txt_color = (20, 20, 20) if not disabled else (200, 200, 200)
+        self.txt = font.render(button_text, True, txt_color)
         self.rect = self.txt.get_rect(center=(x, y))
         self.clicked = False
         self.rounded_edge = rounded_edge
+        self.disabled = disabled
 
     def draw(self, screen, state):
         border_radius = self.height // 3 if self.rounded_edge else 0
@@ -157,6 +159,9 @@ class Button:
         screen.blit(self.txt, self.rect)
 
     def catch_mouse_action(self):
+        if self.disabled:
+            return False, 'normal'
+
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         state = 'normal'

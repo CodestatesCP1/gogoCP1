@@ -1,5 +1,7 @@
+import os
 import random
 import numpy as np
+import pickle
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
@@ -15,7 +17,7 @@ class Agent:
         self.kernel_size = hyperparams['kernel_size']
         self.input_shape = hyperparams['input_shape']
         self.action_space = np.array([0, 1, 2, 3])
-        self.memory = deque(maxlen=2500)
+        self.memory = deque(maxlen=2500) if 'memory' not in hyperparams else hyperparams['memory']
 
         self.model = self.build_model()
 
@@ -80,3 +82,14 @@ class Agent:
         p[best_Q_action] = 1 - self.epsilon
 
         return np.random.choice(self.action_space, p=p)
+
+    def save(self, model_path):
+        index = 1
+        trying = True
+        while trying:
+            file_path = model_path + f'model_{index}.pkl'
+            if not os.path.isfile(file_path):
+                with open(file_path, 'wb') as pickle_file:
+                    pickle.dump(self, pickle_file)
+                    trying = False
+            index += 1
