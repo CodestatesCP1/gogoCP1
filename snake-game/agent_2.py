@@ -1,5 +1,7 @@
+import os
 import random
 import numpy as np
+import pickle
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
@@ -17,7 +19,7 @@ class Agent2:
         self.learning_rate = hyperparams['learning_rate']
         self.layer_sizes = hyperparams['layer_sizes']
         self.action_space = 4
-        self.memory = deque(maxlen=2500)
+        self.memory = deque(maxlen=2500) if 'memory' not in hyperparams else hyperparams['memory']
 
         self.model = self.build_model()
 
@@ -32,6 +34,9 @@ class Agent2:
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
         return model
+
+    def set_model(self, model):
+        self.model = model
 
     def remember(self, state, action, reward, next_state, done):
         state = np.reshape(state, (1, self.state_space))
@@ -75,3 +80,27 @@ class Agent2:
         p[best_Q_action] = 1 - self.epsilon
 
         return np.random.choice(range(self.action_space), p=p)
+
+    def save(self, model_path):
+        index = 1
+        while True:
+            model_file_path = model_path + f'model_{index}/model.h5'
+            if not os.path.isfile(model_file_path):
+                self.model.save(model_file_path)
+
+                model_hyperparams_path = model_path + f'model_{index}/hyperparams.pkl'
+                hyperparams = {
+                    'state_space': self.state_space,
+                    'epsilon': self.epsilon,
+                    'epsilon_min': self.epsilon_min,
+                    'epsilon_decay': self.epsilon_decay,
+                    'gamma': self.gamma,
+                    'batch_size': self.batch_size,
+                    'learning_rate': self.learning_rate,
+                    'layer_sizes': self.layer_sizes,
+                    'memory': self.memory
+                }
+                with open(model_hyperparams_path, 'wb') as pickle_file:
+                    pickle.dump(hyperparams, pickle_file)
+                break
+            index += 1

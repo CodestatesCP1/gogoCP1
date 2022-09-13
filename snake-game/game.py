@@ -1,6 +1,8 @@
 import os
+import pickle
 import numpy as np
 import pygame
+from tensorflow.python.keras.models import load_model
 
 from gameclasses import Snake, Button, VolumeControlBar, to_code, to_direction
 from agent import Agent
@@ -102,6 +104,8 @@ def init():
     game_env['hot_reward'] = 1
     game_env['cool_reward'] = -1
 
+    game_env['model_path'] = current_path + '/models/'
+
     return game_env
 
 
@@ -147,6 +151,7 @@ def mode_select(game_env):
         game_env['agent'] = Agent2(hyperparams)
         # --------------------------------------
 
+    background_color = '#333333'
     running = True
     while running:
         action_player_btn, state_player_btn = player_button.catch_mouse_action()
@@ -169,8 +174,106 @@ def mode_select(game_env):
                     select_ai()
                     running = False
 
+        pygame.draw.rect(screen, background_color, (0, 0, screen_width, screen_height))
         player_button.draw(screen, state_player_btn)
         ai_button.draw(screen, state_ai_btn)
+        pygame.display.update()
+
+    if game_env['player'] != AI:
+        return
+
+    model_path = game_env['model_path']
+    model_list = list(filter(lambda filename: filename.startswith('model'), os.listdir(model_path)))
+    model_list.sort()
+
+    model_exist = len(model_list) > 0
+
+    new_ai_button = Button(screen_width // 2, 2 * screen_height // 5, btn_width, btn_height, 'New AI(↑)', btn_font)
+    load_ai_button = Button(screen_width // 2, 3 * screen_height // 5, btn_width, btn_height, 'Load AI(↓)', btn_font,
+                            disabled=not model_exist)
+
+    running = True
+    while running:
+        action_new_btn, state_new_btn = new_ai_button.catch_mouse_action()
+        action_load_btn, state_load_btn = load_ai_button.catch_mouse_action()
+
+        if action_new_btn:
+            game_env['new_ai'] = True
+            running = False
+        if action_load_btn:
+            game_env['new_ai'] = False
+            running = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    game_env['new_ai'] = True
+                    running = False
+                elif model_exist and event.key == pygame.K_DOWN:
+                    game_env['new_ai'] = False
+                    running = False
+
+        pygame.draw.rect(screen, background_color, (0, 0, screen_width, screen_height))
+        new_ai_button.draw(screen, state_new_btn)
+        load_ai_button.draw(screen, state_load_btn)
+        pygame.display.update()
+
+    if game_env['new_ai']:
+        return
+
+    confirm_btn = Button(screen_width // 2, 3 * screen_height // 5, 170, 70, 'OK(enter)', btn_font)
+
+    idx = 0
+    running = True
+    pressed = False
+    while running:
+        action_confirm_btn, state_confirm_btn = confirm_btn.catch_mouse_action()
+
+        def confirm():
+            dir_path = model_path + model_list[idx] + '/'
+            with open(dir_path + 'hyperparams.pkl', 'rb') as pickle_file:
+                hyperparams = pickle.load(pickle_file)
+            pre_learned_model = load_model(dir_path + 'model.h5')
+            pre_learned_agent = Agent2(hyperparams)
+            pre_learned_agent.set_model(pre_learned_model)
+            game_env['agent'] = pre_learned_agent
+
+        if action_confirm_btn:
+            confirm()
+            running = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if not pressed and event.key == pygame.K_UP:
+                    pressed = True
+                    idx = min(idx+1, len(model_list)-1)
+                elif not pressed and event.key == pygame.K_DOWN:
+                    pressed = True
+                    idx = max(0, idx-1)
+                elif event.key == pygame.K_RETURN:
+                    confirm()
+                    running = False
+            if event.type == pygame.KEYUP:
+                pressed = False
+
+        model_info_color = (225, 225, 225)
+        model_txt = btn_font.render(model_list[idx], True, model_info_color)
+
+        pygame.draw.rect(screen, background_color, (0, 0, screen_width, screen_height))
+        confirm_btn.draw(screen, state_confirm_btn)
+
+        model_rect = model_txt.get_rect(center=(screen_width // 2, 2 * screen_height // 5))
+        screen.blit(model_txt, model_rect)
+
+        model_rect.size = (model_rect.width * 1.5, model_rect.height * 1.5)
+        model_rect.centerx = screen_width // 2
+        model_rect.centery = 2 * screen_height // 5
+        pygame.draw.rect(screen, model_info_color, model_rect, width=3)
+
         pygame.display.update()
 
 
@@ -191,6 +294,7 @@ def play(game_env):
     volume_control_bar = game_env['volume_control_bar']
 
     game_font = game_env['font']['game_font']
+    btn_font = game_env['font']['btn_font']
 
     PLAYER = game_env['player']
     if PLAYER == AI:
@@ -201,10 +305,13 @@ def play(game_env):
     hot_reward = game_env['hot_reward']
     cool_reward = game_env['cool_reward']
 
+    model_path = game_env['model_path']
+
     # 뱀 최초 위치 랜덤 생성(벽에 너무 가까이 있으면 시작하자마자 죽을 수 있으므로 벽과 적당히 떨어져있도록 설정)
     snake_init_pos = (
         np.random.randint(board_size // 4, 3 * board_size // 4),
-        np.random.randint(board_size // 4, 3 * board_size // 4))
+        np.random.randint(board_size // 4, 3 * board_size // 4)
+    )
     snake = Snake(position=snake_init_pos, board_size=board_size,
                   head_img=snake_head, body_img=snake_body, tail_img=snake_tail, img_unit=board_unit_size)
 
@@ -232,10 +339,10 @@ def play(game_env):
             head_x, head_y = body[0]
             feed_x, feed_y = feed_pos
 
-            obstacle_up = head_y == 0 or (head_x, head_y-1) in body
-            obstacle_left = head_x == 0 or (head_x-1, head_y) in body
-            obstacle_down = head_y == board_size-1 or (head_x, head_y+1) in body
-            obstacle_right = head_x == board_size-1 or (head_x+1, head_y) in body
+            obstacle_up = head_y == 0 or (head_x, head_y - 1) in body
+            obstacle_left = head_x == 0 or (head_x - 1, head_y) in body
+            obstacle_down = head_y == board_size - 1 or (head_x, head_y + 1) in body
+            obstacle_right = head_x == board_size - 1 or (head_x + 1, head_y) in body
 
             up = left = right = down = 0
 
@@ -251,8 +358,9 @@ def play(game_env):
             return [feed_x, feed_y, head_x, head_y,
                     obstacle_up, obstacle_left, obstacle_down, obstacle_right,
                     up, left, right, down]
-        # --------------------------------------
 
+        # --------------------------------------
+        save_button = Button(105, 110, 200, 70, 'save model', btn_font)
 
     # Left and Up (뱀이 움직일 수 있는 영역의 맨 왼쪽 위 좌표)
     LU = (0, screen_height - screen_width)
@@ -280,6 +388,10 @@ def play(game_env):
                     pygame.mixer.music.unpause()
 
         volume_control_bar.catch_mouse_action()
+        if PLAYER == AI:
+            action_save_btn, state_save_btn = save_button.catch_mouse_action()
+            if action_save_btn:
+                agent.save(model_path)
 
         if not pause:
             next_action = snake.get_direction()
@@ -347,6 +459,8 @@ def play(game_env):
 
         screen.blit(background, (0, 0))
         volume_control_bar.render(screen)
+        if PLAYER == AI:
+            save_button.draw(screen, state_save_btn)
         snake.render(screen, LU)
         screen.blit(feed, (LU[0] + feed_pos[0] * board_unit_size, LU[1] + feed_pos[1] * board_unit_size))
         render_score(str(score), game_font, screen, screen_width, screen_height)
