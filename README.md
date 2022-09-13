@@ -9,7 +9,8 @@
 
   1) 게임 제작 사용 모듈 : pygame
   2) AI 구현
-  - 사용 알고리즘 : DQN (Deep Q-Network) with CNN  
+  - 사용 알고리즘 : DQN (Deep Q-Network) with CNN
+  3) 실행 방법은 해당 디렉토리 내부의 README를 참고하세요
 
 ### 2. Study : 본 프로젝트를 위해 Study 한 자료 모음
   - Cartpole (https://github.com/CodingOpera/RL/blob/main/CartPole-v0.ipynb)

@@ -324,15 +324,18 @@ def play(game_env):
     state = None
     if PLAYER == AI:
         # CNN Agent
-        state = np.zeros((board_size, board_size, 3), dtype=int)
-        # 뱀 몸통 표시
-        for x, y in snake.get_body():
-            state[y][x][0] = 1
-        # 뱀 머리 표시
-        head_x, head_y = snake.get_body()[0]
-        state[head_y][head_x][1] = 1
-        # 먹이 표시
-        state[feed_pos[1]][feed_pos[0]][2] = 1
+        def get_state():
+            _state = np.zeros((20, 20, 3), dtype=int)
+
+            body = snake.get_body()
+            head = body[0]
+
+            _state[feed_pos[1]][feed_pos[0]][2] = 1
+            _state[head[1]][head[0]][1] = 1
+            for b in body:
+                _state[b[1]][b[0]][0] = 1
+
+            return _state
         # --------------------------------------
 
         # Multi Perceptron Agent
@@ -411,9 +414,7 @@ def play(game_env):
                             next_action = 'R'
             # 플레이어가 인공지능인 경우 agent 가 다음 행동 결정
             elif PLAYER == AI:
-                # Multi Perceptron Agent
-                # state = get_state()
-                # --------------------------------------
+                state = get_state()
 
                 next_action = to_direction(agent.policy(state))
 
@@ -435,24 +436,8 @@ def play(game_env):
 
             prev_state = state
 
-            # CNN Agent
-            # 상태 업데이트
-            if PLAYER == AI and not done:
-                state[new_head[1]][new_head[0]][0] = 1
-                state[new_head[1]][new_head[0]][1] = 1
-                state[old_head[1]][old_head[0]][1] = 0
-                if popped:
-                    state[popped[1]][popped[0]][0] = 0
-                if old_feed_pos:
-                    state[old_feed_pos[1]][old_feed_pos[0]][2] = 0
-                    state[feed_pos[1]][feed_pos[0]][2] = 1
-            next_state = state
-            # --------------------------------------
-
-            # Multi Perceptron Agent
-            # if PLAYER == AI:
-            #     next_state = get_state()
-            # --------------------------------------
+            if PLAYER == AI:
+                next_state = get_state()
 
             if PLAYER == AI:
                 agent.train_dqn(prev_state, to_code(next_action), reward, next_state, done)
